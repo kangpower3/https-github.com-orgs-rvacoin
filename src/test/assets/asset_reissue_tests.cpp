@@ -14,6 +14,7 @@
 #include <base58.h>
 #include <consensus/validation.h>
 #include <consensus/tx_verify.h>
+#include <ipfs/client.h>
 
 BOOST_FIXTURE_TEST_SUITE(asset_reissue_tests, BasicTestingSetup)
 
@@ -98,6 +99,16 @@ BOOST_FIXTURE_TEST_SUITE(asset_reissue_tests, BasicTestingSetup)
 
         BOOST_CHECK_MESSAGE(!reissue2.IsValid(error, cache), "Reissue shouldn't of been valid");
 
+    }
+
+    BOOST_AUTO_TEST_CASE(hello_ipfs) {
+        std::stringstream contents;
+
+        ipfs::Client client("localhost", 5001);
+
+        client.FilesGet("/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/readme", &contents);
+
+        BOOST_TEST_MESSAGE(contents.str());
     }
 
 

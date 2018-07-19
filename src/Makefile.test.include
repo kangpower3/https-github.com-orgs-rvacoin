@@ -102,7 +102,7 @@ RAVEN_TESTS += \
 endif
 
 test_test_raven_SOURCES = $(RAVEN_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
-test_test_raven_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) -I$(builddir)/test/ $(TESTDEFS) $(EVENT_CFLAGS)
+test_test_raven_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) -I$(builddir)/test/ $(TESTDEFS) $(EVENT_CFLAGS) -I/usr/local/include/ipfs/
 test_test_raven_LDADD =
 if ENABLE_WALLET
 test_test_raven_LDADD += $(LIBRAVEN_WALLET)
@@ -117,6 +117,8 @@ test_test_raven_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) -sta
 if ENABLE_ZMQ
 test_test_raven_LDADD += $(ZMQ_LIBS)
 endif
+
+test_test_raven_LDFLAGS += -L/usr/local/lib/ -lcurl -lipfs-api
 #
 
 # test_raven_fuzzy binary #
