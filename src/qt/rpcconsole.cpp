@@ -20,6 +20,8 @@
 #include "rpc/client.h"
 #include "util.h"
 
+#include "ipfs.h"   //Utilities for interacting with IPFS
+
 #include <openssl/crypto.h>
 
 #include <univalue.h>
@@ -920,6 +922,22 @@ void RPCConsole::on_tabWidget_currentChanged(int index)
 
 void RPCConsole::on_openDebugLogfileButton_clicked()
 {
+    GUIUtil::openDebugLogfile();
+}
+
+void RPCConsole::on_activateIPFS_Button_clicked()
+{
+    std::string result;
+    result = exec("./ipfs init");
+    if (result.find("ipfs configuration file already exists") != std::string::npos)
+    {
+        ui->IPFS_Active->setText("Already initialized");
+    }
+    else
+    {
+        ui->IPFS_Active->setText("Active");
+    }
+
     GUIUtil::openDebugLogfile();
 }
 
