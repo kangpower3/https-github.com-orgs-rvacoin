@@ -7,8 +7,8 @@
 #include <string>
 #include <array>
 
-void testfunc(char * test) {
-
+std::string testfunc() {
+  return "test";
 }
 
 std::string exec(const char* cmd) {
@@ -22,3 +22,16 @@ std::string exec(const char* cmd) {
     }
     return result;
 }
+
+std::string Ipfs::init()
+{
+	return(exec("ipfs init"));	
+}
+
+std::string Ipfs::start_daemon()
+{
+    return(exec("ipfs daemon &"));  
+}
+
+
+
