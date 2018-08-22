@@ -478,8 +478,7 @@ UniValue listaddressesbyasset(const JSONRPCRequest &request)
                 "]\n"
 
                 "\nExamples:\n"
-                + HelpExampleCli("getassetsaddresses", "assetname")
-                + HelpExampleCli("getassetsaddresses", "assetname")
+                + HelpExampleCli("listaddressesbyasset", "assetname")
         );
 
     LOCK(cs_main);
