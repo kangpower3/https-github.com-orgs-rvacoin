@@ -668,7 +668,7 @@ class CBlockHeader():
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
             self.hash = hash_x16r(encode(r, 'hex_codec').decode('ascii'))
-            self.sha256 = int(self.hash, 16)
+            self.sha256 = uint256_from_str(self.hash[::-1].encode())
 
     def rehash(self):
         self.sha256 = None
