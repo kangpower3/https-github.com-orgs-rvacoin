@@ -199,6 +199,7 @@ CBlockTreeDB *pblocktree = nullptr;
 CAssetsDB *passetsdb = nullptr;
 CAssetsCache *passets = nullptr;
 CLRUCache<std::string, CDatabasedAssetData> *passetsCache = nullptr;
+CLRUCache<std::string, CMessage> *pMessagesCache = nullptr;
 
 enum FlushStateMode {
     FLUSH_STATE_NONE,
