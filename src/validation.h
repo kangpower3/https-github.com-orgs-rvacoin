@@ -528,6 +528,8 @@ bool LoadMempool();
 /** RVN START */
 bool AreAssetsDeployed();
 
+bool AreMessagingDeployed();
+
 bool IsDGWActive(unsigned int nBlockNumber);
 /** RVN END */
 
