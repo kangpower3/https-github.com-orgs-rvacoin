@@ -1460,7 +1460,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
                 pMessagesCache = new CLRUCache<std::string, CMessage>(1000);
                 pMessagesChannelsCache = new CLRUCache<std::string, int>(1000);
-                pmessagedb = new CMessageDB(nBlockTreeDBCache, false, false);
+                pmessagedb = new CMessageDB(nBlockTreeDBCache, false, fMessagingDisabled);
 
                 // Need to load assets before we verify the database
                 if (!passetsdb->LoadAssets()) {
@@ -1473,13 +1473,19 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
                 LogPrintf("Loaded Assets from database without error\nCache of assets size: %d\nNumber of assets I have: %d\n", passetsCache->Size(), passets->mapMyUnspentAssets.size());
 
-                if (pmessagedb->ReadFlag("disablemessaging", fMessagingDisabled)) {
-                    LogPrintf("%s: Asset Messaging %s\n", __func__, fMessagingDisabled ? "disabled" : "enabled");
-                } else {
+                // If we got true from the params above, write the new value
+                if (fMessagingDisabled) {
                     pmessagedb->WriteFlag("disablemessaging", fMessagingDisabled);
                 }
 
-                // Check for changed -txindex state
+                // Read the flag from database
+                if(pmessagedb->ReadFlag("disablemessaging", fMessagingDisabled)) {
+                    LogPrintf("%s: Asset Messaging %s\n", __func__, fMessagingDisabled ? "disabled" : "enabled");
+                } else {
+                    LogPrintf("%s: Init asset message database\n");
+                }
+
+                // Check for changed -disablemessaging state
                 if (fMessagingDisabled != gArgs.GetBoolArg("-disablemessaging", fMessagingDisabled)) {
                     LogPrintf("%s: Turning %s Asset Messaging\n", __func__, fMessagingDisabled ? "on" : "off");
                     // Use the provided setting for -txindex in the new database
