@@ -185,6 +185,7 @@ extern CWaitableCriticalSection csBestBlock;
 extern CConditionVariable cvBlockChange;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
+extern bool fMessagingDisabled;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern bool fAddressIndex;
@@ -496,6 +497,8 @@ extern CAssetsCache *passets;
 extern CLRUCache<std::string, CDatabasedAssetData> *passetsCache;
 
 extern CLRUCache<std::string, CMessage> *pMessagesCache;
+extern CLRUCache<std::string, int> *pMessagesChannelsCache;
+extern CMessageDB *pmessagedb;
 /** RVN END */
 
 /**
