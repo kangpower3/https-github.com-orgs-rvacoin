@@ -201,7 +201,8 @@ CAssetsDB *passetsdb = nullptr;
 CAssetsCache *passets = nullptr;
 CLRUCache<std::string, CDatabasedAssetData> *passetsCache = nullptr;
 CLRUCache<std::string, CMessage> *pMessagesCache = nullptr;
-CLRUCache<std::string, int> *pMessagesChannelsCache = nullptr;
+CLRUCache<std::string, int> *pMessageSubscribedChannelsCache = nullptr;
+CLRUCache<std::string, int> *pMessagesSeenAddressCache = nullptr;
 CMessageDB *pmessagedb = nullptr;
 CMessageChannelDB *pmessagechanneldb = nullptr;
 
@@ -1843,7 +1844,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* 
                         (IsAssetNameAnOwner(transfer.strName) || IsAssetNameAnMsgChannel(transfer.strName))) {
 
                         LOCK(cs_messaging);
-                        if (IsChannelWatched(transfer.strName)) {
+                        if (IsChannelSubscribed(transfer.strName)) {
                             OrphanMessage(COutPoint(hash, index));
                         }
                     }
@@ -2525,10 +2526,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     if (fJustCheck)
         return true;
 
-    if (messageCache) {
-
-    }
-
     // Write undo information to disk
     if (pindex->GetUndoPos().IsNull() || !pindex->IsValid(BLOCK_VALID_SCRIPTS))
     {
@@ -2595,7 +2592,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     if (AreMessagingDeployed() && fMessaging && setMessages.size()) {
         LOCK(cs_messaging);
         for (auto message : setMessages) {
-            if (IsChannelWatched(message.strName)) {
+            if (IsChannelSubscribed(message.strName)) {
                 int nHeight = 0;
                 if (pindex)
                     nHeight = pindex->nHeight;
@@ -2663,8 +2660,21 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
         if (nLastSetChain == 0) {
             nLastSetChain = nNow;
         }
+
+        int assetCacheSize = 0;
+        int messageCacheSize = 0;
+
+        if (AreAssetsDeployed()) {
+            if (passets)
+                assetCacheSize = passets->GetCacheSize();
+        }
+
+        if (fMessaging) {
+                messageCacheSize = GetMessageDirtyCacheSize();
+        }
+
         int64_t nMempoolSizeMax = gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
-        int64_t cacheSize = pcoinsTip->DynamicMemoryUsage();
+        int64_t cacheSize = pcoinsTip->DynamicMemoryUsage() + assetCacheSize + messageCacheSize;
         int64_t nTotalSpace = nCoinCacheUsage + std::max<int64_t>(nMempoolSizeMax - nMempoolUsage, 0);
         // The cache is large and we're within 10% and 10 MiB of the limit, but we have time now (not in the middle of a block processing).
         bool fCacheLarge = mode == FLUSH_STATE_PERIODIC && cacheSize > std::max((9 * nTotalSpace) / 10, nTotalSpace - MAX_BLOCK_COINSDB_USAGE * 1024 * 1024);
@@ -2743,11 +2753,17 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
             if (passetsdb)
                 passetsdb->WriteReissuedMempoolState();
 
-            if (AreMessagingDeployed()) {
-                if (pMessagesCache && pmessagedb) {
+            if (fMessaging) {
+                if (pmessagedb) {
                     LOCK(cs_messaging);
                     if (!pmessagedb->Flush())
                         return AbortNode(state, "Failed to Flush the message database");
+                }
+
+                if (pmessagechanneldb) {
+                    LOCK(cs_messaging);
+                    if (!pmessagechanneldb->Flush())
+                        return AbortNode(state, "Failed to Flush the message channel database");
                 }
             }
             /** RVN END */
