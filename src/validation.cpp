@@ -79,6 +79,9 @@ int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
 bool fMessaging = true;
+bool fIPFS = true;
+bool fIPFSNode = false;
+bool fIPFSNodeNoFilter = false;
 bool fTxIndex = false;
 bool fAddressIndex = false;
 bool fTimestampIndex = false;
@@ -2597,7 +2600,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 if (pindex)
                     nHeight = pindex->nHeight;
                 message.nBlockHeight = nHeight;
-                AddMessage(message);
+                if (messageCache)
+                    messageCache->insert(message);
             }
         }
     }
@@ -3029,9 +3033,11 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
         /** RVN START */
         CAssetsCache assetCache(*passets);
         prevNewAssets = assetCache.setNewAssetsToAdd; // List of newly cached assets before block is connected
+
+        std::set<CMessage> messageCache;
         /** RVN END */
 
-        bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams, &assetCache);
+        bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams, &assetCache, false, false, &messageCache);
         GetMainSignals().BlockChecked(blockConnecting, state);
         if (!rv) {
             if (state.IsInvalid())
@@ -3064,6 +3070,9 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
         /** RVN START */
         bool assetFlushed = assetCache.Flush(true);
         assert(assetFlushed);
+
+        for (auto message : messageCache)
+            AddMessage(message);
         /** RVN END */
     }
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;

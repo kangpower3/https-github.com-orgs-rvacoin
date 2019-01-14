@@ -47,6 +47,7 @@
 #include "validationinterface.h"
 #include "assets/assets.h"
 #include "assets/assetdb.h"
+#include "assets/ipfs.h"
 #ifdef ENABLE_WALLET
 #include "wallet/init.h"
 #endif
@@ -191,6 +192,7 @@ void Shutdown()
     StopREST();
     StopRPC();
     StopHTTPServer();
+    ThreadDaemonStop(); // Stop ipfs daemon
 #ifdef ENABLE_WALLET
     FlushWallets();
 #endif
@@ -1481,12 +1483,43 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
                 LogPrintf("Loaded Assets from database without error\nCache of assets size: %d\nNumber of assets I have: %d\n", passetsCache->Size(), passets->mapMyUnspentAssets.size());
 
-                // Check for changed -disablemessaging state
+                // Check for -disablemessaging state
                 if (gArgs.GetArg("-disablemessaging", false)) {
                     LogPrintf("Messaging is disabled\n");
                     fMessaging = false;
                 } else {
                     LogPrintf("Messaging is enabled\n");
+                }
+
+                // Check for -noipfs state
+                if (gArgs.GetArg("-noipfs", false)) {
+                    LogPrintf("IPFS is disabled\n");
+                    fIPFS = false;
+                } else {
+                    LogPrintf("IPFS is enabled\n");
+                }
+
+                // Check for -ipfsnode state
+                if (gArgs.GetArg("-ipfsnode", false)) {
+                    if (!fIPFS) {
+                        LogPrintf("IPFS node is enabled but -noipfs flag is set to true. Skipping ipfs node setup\n");
+                    } else {
+                        LogPrintf("IPFS node is enabled\n");
+                        fIPFSNode = true;
+                    }
+                } else {
+                    LogPrintf("IPFS node is disabled\n");
+                }
+
+                // Check for -ipfsnofilter state
+                if (fIPFSNode) {
+                    // Check for -ipfsnofilter state
+                    if (gArgs.GetArg("-ipfsnofilter", false)) {
+                        LogPrintf("IPFS node pinning all ipfs hashes(no filter selected)\n");
+                        fIPFSNodeNoFilter = true;
+                    } else {
+                        LogPrintf("IPFS node pinning filtered ipfs hashes only\n");
+                    }
                 }
 
                 if (fReset) {

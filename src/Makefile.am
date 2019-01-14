@@ -5,8 +5,8 @@
 
 DIST_SUBDIRS = secp256k1 univalue
 
-AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
-AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS)
+AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) -lcurl
+AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS) -lcurl
 AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
 EXTRA_LIBRARIES =
 
@@ -88,8 +88,13 @@ RAVEN_CORE_H = \
   assets/assets.h \
   assets/assetdb.h \
   assets/assettypes.h \
+  assets/ipfs.h \
   assets/messages.h \
   assets/messagedb.h \
+  assets/ipfs/client.h \
+  assets/ipfs/http/transport.h \
+  assets/ipfs/http/transport-curl.h \
+  assets/ipfs/test/utils.h \
   base58.h \
   bloom.h \
   blockencodings.h \
@@ -219,6 +224,10 @@ libraven_server_a_SOURCES = \
   assets/assettypes.cpp \
   assets/messages.cpp \
   assets/messagedb.cpp \
+  assets/ipfs.cpp \
+  assets/ipfs/client.cc \
+  assets/ipfs/json.hpp \
+  assets/ipfs/http/transport-curl.cc \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
@@ -436,7 +445,7 @@ nodist_libraven_util_a_SOURCES = $(srcdir)/obj/build.h
 ravend_SOURCES = ravend.cpp
 ravend_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 ravend_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-ravend_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+ravend_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) -lcurl
 
 if TARGET_WINDOWS
 ravend_SOURCES += ravend-res.rc
@@ -462,7 +471,7 @@ ravend_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC
 raven_cli_SOURCES = raven-cli.cpp
 raven_cli_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(EVENT_CFLAGS)
 raven_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-raven_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+raven_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) -lcurl
 
 if TARGET_WINDOWS
 raven_cli_SOURCES += raven-cli-res.rc
@@ -507,7 +516,7 @@ if GLIBC_BACK_COMPAT
   libravenconsensus_la_SOURCES += compat/glibc_compat.cpp
 endif
 
-libravenconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
+libravenconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS) -lcurl
 libravenconsensus_la_LIBADD = $(LIBSECP256K1)
 libravenconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_RAVEN_INTERNAL
 libravenconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
