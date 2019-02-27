@@ -177,6 +177,7 @@ static CScript PushAll(const std::vector<valtype>& values)
 
 bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata)
 {
+    LogPrintf("\n\n\nProduceSignature()\n");
     CScript script = fromPubKey;
     std::vector<valtype> result;
     txnouttype whichType;
@@ -220,10 +221,10 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     }
 
     if (P2SH) {
-        LogPrintf("ProducesSignature(): P2SH=true; pushing subscript with size=%s\n", subscript.size());
+        LogPrintf("ProduceSignature(): P2SH=true; pushing subscript with size=%s\n", subscript.size());
         result.push_back(std::vector<unsigned char>(subscript.begin(), subscript.end()));
     } else {
-        LogPrintf("ProducesSignature(): P2SH=false; NOT pushing subscript\n");
+        LogPrintf("ProduceSignature(): P2SH=false; NOT pushing subscript\n");
     }
     sigdata.scriptSig = PushAll(result);
 

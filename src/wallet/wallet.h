@@ -12,6 +12,7 @@
 #include "streams.h"
 #include "tinyformat.h"
 #include "ui_interface.h"
+#include "util.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "script/ismine.h"
@@ -1262,6 +1263,7 @@ bool CWallet::DummySignTx(CMutableTransaction &txNew, const ContainerType &coins
         const CScript& scriptPubKey = coin.txout.scriptPubKey;
         SignatureData sigdata;
 
+        LogPrintf("DummySignTx(): scriptPubKey=%s\n", HexStr(std::string(scriptPubKey.begin(), scriptPubKey.end())));
         if (!ProduceSignature(DummySignatureCreator(this), scriptPubKey, sigdata))
         {
             return false;
