@@ -12,6 +12,7 @@
 #include "primitives/transaction.h"
 #include "script/standard.h"
 #include "uint256.h"
+#include "util.h"
 
 
 typedef std::vector<unsigned char> valtype;
@@ -184,6 +185,8 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     CScript subscript;
     sigdata.scriptWitness.stack.clear();
 
+    LogPrintf("ProduceSignature(): solved=%s, whichType=%s\n", solved, whichType);
+
     if (solved && whichType == TX_SCRIPTHASH)
     {
         // Solver returns the subscript that needs to be evaluated;
@@ -192,6 +195,7 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
         script = subscript = CScript(result[0].begin(), result[0].end());
         solved = solved && SignStep(creator, script, result, whichType, SIGVERSION_BASE) && whichType != TX_SCRIPTHASH;
         P2SH = true;
+        LogPrintf("ProduceSignature(): solving TX_SCRIPTHASH: solved=%s, P2SH=%s\n", solved, P2SH);
     }
 
     if (solved && whichType == TX_WITNESS_V0_KEYHASH)
@@ -202,6 +206,7 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
         solved = solved && SignStep(creator, witnessscript, result, subType, SIGVERSION_WITNESS_V0);
         sigdata.scriptWitness.stack = result;
         result.clear();
+        LogPrintf("ProduceSignature(): solving TX_WITNESS_V0_KEYHASH: solved=%s, P2SH=%s\n", solved, P2SH);
     }
     else if (solved && whichType == TX_WITNESS_V0_SCRIPTHASH)
     {
@@ -211,15 +216,21 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
         result.push_back(std::vector<unsigned char>(witnessscript.begin(), witnessscript.end()));
         sigdata.scriptWitness.stack = result;
         result.clear();
+        LogPrintf("ProduceSignature(): solving TX_WITNESS_V0_SCRIPTHASH: solved=%s, P2SH=%s\n", solved, P2SH);
     }
 
     if (P2SH) {
+        LogPrintf("ProducesSignature(): P2SH=true; pushing subscript with size=%s\n", subscript.size());
         result.push_back(std::vector<unsigned char>(subscript.begin(), subscript.end()));
+    } else {
+        LogPrintf("ProducesSignature(): P2SH=false; NOT pushing subscript\n");
     }
     sigdata.scriptSig = PushAll(result);
 
     // Test solution
-    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
+    bool verified = VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
+    LogPrintf("ProduceSignature(): testing solution: solved=%s, verified=%s\n", solved, verified);
+    return solved && verified;
 }
 
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn)
