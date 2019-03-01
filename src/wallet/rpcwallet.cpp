@@ -2936,6 +2936,7 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
                             "\nSend the transaction\n"
                             + HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\"")
                             );
+    LogPrintf("%s: %s\n", __func__, request.params[0].get_str());
 
     ObserveSafeMode();
     RPCTypeCheck(request.params, {UniValue::VSTR});

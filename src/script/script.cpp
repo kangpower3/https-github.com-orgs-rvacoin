@@ -245,29 +245,19 @@ bool CScript::IsAssetScript(int& nType, bool& isOwner) const
 
 bool CScript::IsAssetScript(int& nType, bool& fIsOwner, int& nStartingIndex) const
 {
-    LogPrintf("\n\n\nIsAssetScript(0)\n");
     if (this->size() > 30) {
-        LogPrintf("IsAssetScript(1)\n");
         if ((*this)[25] == OP_RVN_ASSET) { // OP_RVN_ASSET is always in the 25 index of the script if it exists
-            LogPrintf("IsAssetScript(2)\n");
             int index = -1;
             if ((*this)[27] == RVN_R) { // Check to see if RVN starts at 27 ( this->size() < 105)
-                LogPrintf("IsAssetScript(3)\n");
                 if ((*this)[28] == RVN_V) {
-                    LogPrintf("IsAssetScript(4)\n");
                     if ((*this)[29] == RVN_N) {
-                        LogPrintf("IsAssetScript(5)\n");
                         index = 30;
                     }
                 }
             } else {
-                LogPrintf("IsAssetScript(6)\n");
                 if ((*this)[28] == RVN_R) { // Check to see if RVN starts at 28 ( this->size() >= 105)
-                    LogPrintf("IsAssetScript(7)\n");
                     if ((*this)[29] == RVN_V) {
-                        LogPrintf("IsAssetScript(8)\n");
                         if ((*this)[30] == RVN_N) {
-                            LogPrintf("IsAssetScript(9)\n");
                             index = 31;
                         }
                     }
@@ -275,31 +265,30 @@ bool CScript::IsAssetScript(int& nType, bool& fIsOwner, int& nStartingIndex) con
             }
 
             if (index > 0) {
-                LogPrintf("IsAssetScript(10)\n");
                 nStartingIndex = index + 1; // Set the index where the asset data begins. Use to serialize the asset data into asset objects
                 if ((*this)[index] == RVN_T) { // Transfer first anticipating more transfers than other assets operations
-                    LogPrintf("IsAssetScript(11)\n");
+                    LogPrintf("IsAssetScript: TX_TRANSFER_ASSET\n");
                     nType = TX_TRANSFER_ASSET;
                     return true;
                 } else if ((*this)[index] == RVN_Q && this->size() > 39) {
-                    LogPrintf("IsAssetScript(12)\n");
+                    LogPrintf("IsAssetScript: TX_NEW_ASSET\n");
                     nType = TX_NEW_ASSET;
                     fIsOwner = false;
                     return true;
                 } else if ((*this)[index] == RVN_O) {
-                    LogPrintf("IsAssetScript(13)\n");
+                    LogPrintf("IsAssetScript: TX_NEW_ASSET\n");
                     nType = TX_NEW_ASSET;
                     fIsOwner = true;
                     return true;
                 } else if ((*this)[index] == RVN_R) {
-                    LogPrintf("IsAssetScript(14)\n");
+                    LogPrintf("IsAssetScript: TX_REISSUE_ASSET\n");
                     nType = TX_REISSUE_ASSET;
                     return true;
                 }
             }
         }
     }
-    LogPrintf("IsAssetScript(15)\n\n\n");
+    LogPrintf("IsAssetScript: false\n");
     return false;
 }
 

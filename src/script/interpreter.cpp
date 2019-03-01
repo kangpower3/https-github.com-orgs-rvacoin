@@ -1568,9 +1568,9 @@ bool VerifyScript(const CScript &scriptSig, const CScript &scriptPubKey, const C
     {
         // mney - changed from if(serror). This code wasn't in Bitcoin. It caused a spewing of script error
         //        messages when running the unit tests (src/test/test_runner).  Uncomment for additional debug messages
-        //std::string str;
-        //str.assign(ScriptErrorString(*serror));
-        //std::cout << str << std::endl;
+//        std::string str;
+//        str.assign(ScriptErrorString(*serror));
+//        std::cout << str << std::endl;
         return false;
     }
     if (stack.empty())

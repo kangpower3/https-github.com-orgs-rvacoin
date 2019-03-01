@@ -3041,6 +3041,7 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
 
 bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, bool lockUnspents, const std::set<int>& setSubtractFeeFromOutputs, CCoinControl coinControl)
 {
+    LogPrintf("%s: vin size in: %s\n", __func__, tx.vin.size());
     std::vector<CRecipient> vecSend;
 
     // Turn the txout set into a CRecipient vector
@@ -3053,12 +3054,34 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, int& nC
 
     coinControl.fAllowOtherInputs = true;
 
-    for (const CTxIn& txin : tx.vin)
-        coinControl.Select(txin.prevout);
+    // add RVN prevouts to coin; add asset prevouts to preAssetInputs
+    std::set<CTxIn> preAssetInputSet;
+    for (const CTxIn& txin : tx.vin) {
+        Coin coin;
+        if (pcoinsTip && !pcoinsTip->GetCoin(txin.prevout, coin)) {
+            return error("%s: failed to find coin", __func__);
+        }
 
+        if (coin.out.scriptPubKey.IsAssetScript()) {
+            preAssetInputSet.insert(txin);
+        } else {
+            coinControl.Select(txin.prevout);
+
+        }
+    }
+
+    // delete this vin from tx to avoid duplication
+    for (int i = tx.vin.size() - 1; i >= 0; i--) {
+        if (preAssetInputSet.count(tx.vin[i])) {
+            tx.vin.erase(tx.vin.begin() + i);
+        }
+    }
+
+    std::vector<CTxIn> preAssetInputs;
+    std::copy(preAssetInputSet.begin(), preAssetInputSet.end(), std::back_inserter(preAssetInputs));
     CReserveKey reservekey(this);
     CWalletTx wtx;
-    if (!CreateTransaction(vecSend, wtx, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, false)) {
+    if (!CreateTransaction(vecSend, wtx, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, false, &preAssetInputs)) {
         return false;
     }
 
@@ -3088,7 +3111,7 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, int& nC
         }
     }
 
-
+    LogPrintf("%s: vin size out: %s\n", __func__, tx.vin.size());
     return true;
 }
 
@@ -3117,28 +3140,38 @@ bool CWallet::CreateTransactionWithReissueAsset(const std::vector<CRecipient>& v
     return CreateTransactionAll(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coin_control, false, asset, destination, false, true, reissueAsset, assetType, sign);
 }
 
+bool CWallet::CreateTransactionWithNonWalletAssetInputs(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
+                                                        std::string& strFailReason, const CCoinControl& coin_control, const std::vector<CTxIn>* preAssetInputs, bool sign) {
+
+    CNewAsset asset;
+    CReissueAsset reissueAsset;
+    CTxDestination destination;
+    AssetType assetType = AssetType::INVALID;
+    return CreateTransactionAll(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coin_control, false,  asset, destination, false, false, reissueAsset, assetType, sign, preAssetInputs);
+}
+
 bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
-                                        std::string& strFailReason, const CCoinControl& coin_control, bool sign)
+                                        std::string& strFailReason, const CCoinControl& coin_control, bool sign, const std::vector<CTxIn>* preAssetInputs)
 {
 
     CNewAsset asset;
     CReissueAsset reissueAsset;
     CTxDestination destination;
     AssetType assetType = AssetType::INVALID;
-    return CreateTransactionAll(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coin_control, false,  asset, destination, false, false, reissueAsset, assetType, sign);
+    return CreateTransactionAll(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coin_control, false,  asset, destination, false, false, reissueAsset, assetType, sign, preAssetInputs);
 }
 
 bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey,
                                    CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason,
                                    const CCoinControl& coin_control, bool fNewAsset, const CNewAsset& asset,
                                    const CTxDestination destination, bool fTransferAsset, bool fReissueAsset,
-                                   const CReissueAsset& reissueAsset, const AssetType& assetType, bool sign)
+                                   const CReissueAsset& reissueAsset, const AssetType& assetType, bool sign, const std::vector<CTxIn>* preAssetInputs)
 {
     std::vector<CNewAsset> assets;
     assets.push_back(asset);
     return CreateTransactionAll(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coin_control,
                                 fNewAsset, assets, destination, fTransferAsset, fReissueAsset, reissueAsset, assetType,
-                                sign);
+                                sign, preAssetInputs);
 }
 
 bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey,
@@ -3146,8 +3179,9 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                                    const CCoinControl& coin_control, bool fNewAsset,
                                    const std::vector<CNewAsset> assets, const CTxDestination destination,
                                    bool fTransferAsset, bool fReissueAsset, const CReissueAsset& reissueAsset,
-                                   const AssetType& assetType, bool sign)
+                                   const AssetType& assetType, bool sign, const std::vector<CTxIn>* preAssetInputs)
 {
+    LogPrintf("%s\n", __func__);
 
     /** RVN START */
     if (!AreAssetsDeployed() && (fTransferAsset || fNewAsset || fReissueAsset))
@@ -3453,24 +3487,35 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                 // behavior."
 //                const uint32_t nSequence = coin_control.signalRbf ? MAX_BIP125_RBF_SEQUENCE : (CTxIn::SEQUENCE_FINAL - 1);
                 const uint32_t nSequence = CTxIn::SEQUENCE_FINAL - 1;
-                for (const auto& coin : setCoins)
-                    txNew.vin.push_back(CTxIn(coin.outpoint,CScript(),
+                for (const auto& coin : setCoins) {
+                    LogPrintf("%s: Adding regular coin: %s\n", __func__, coin.outpoint.ToString());
+                    txNew.vin.push_back(CTxIn(coin.outpoint, CScript(),
                                               nSequence));
+                }
 
                 /** RVN START */
                 if (AreAssetsDeployed()) {
-                    for (const auto &asset : setAssets)
+                    for (const auto &asset : setAssets) {
+                        LogPrintf("%s: Adding asset coin: %s\n", __func__, asset.outpoint.ToString());
                         txNew.vin.push_back(CTxIn(asset.outpoint, CScript(),
                                                   nSequence));
+                    }
                 }
                 /** RVN END */
 
                 // Add the new asset inputs into the tempSet so the dummysigntx will add the correct amount of sigsß
-                std::set<CInputCoin> tempSet = setCoins;
+                std::set<CInputCoin> tempSet;
+                tempSet.insert(setCoins.begin(), setCoins.end());
                 tempSet.insert(setAssets.begin(), setAssets.end());
 
+                if (preAssetInputs) {
+                    for( const auto &preAssetInput : *preAssetInputs) {
+                        txNew.vin.push_back(preAssetInput);
+                    }
+                }
+
                 // Fill in dummy signatures for fee calculation.
-                if (!DummySignTx(txNew, tempSet)) {
+                if (!DummySignTx(txNew, tempSet, preAssetInputs)) {
                     strFailReason = _("Signing transaction for fee calculation failed");
                     return false;
                 }

@@ -1005,19 +1005,28 @@ public:
     bool CreateTransactionWithReissueAsset(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                                                     std::string& strFailReason, const CCoinControl& coin_control, const CReissueAsset& reissueAsset, const CTxDestination destination, bool sign = true);
 
+    bool CreateTransactionWithNonWalletAssetInputs(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
+                                                   std::string& strFailReason, const CCoinControl& coin_control, const std::vector<CTxIn>* preAssetInputs, bool sign = false);
+
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
-                           std::string& strFailReason, const CCoinControl& coin_control, bool sign = true);
+                           std::string& strFailReason, const CCoinControl& coin_control, bool sign = true, const std::vector<CTxIn>* preAssetInputs = nullptr);
 
     /**
      * Create a new transaction paying the recipients with a set of coins
      * selected by SelectCoins(); Also create the change output, when needed
      * @note passing nChangePosInOut as -1 will result in setting a random position
      */
-    bool CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
-                           std::string& strFailReason, const CCoinControl& coin_control, bool fNewAsset, const CNewAsset& asset, const CTxDestination dest, bool fTransferAsset, bool fReissueAsset, const CReissueAsset& reissueAsset, const AssetType& assetType, bool sign = true);
-
     bool CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet,
-                              int& nChangePosInOut, std::string& strFailReason, const CCoinControl& coin_control, bool fNewAsset, const std::vector<CNewAsset> assets, const CTxDestination destination, bool fTransferAsset, bool fReissueAsset, const CReissueAsset& reissueAsset, const AssetType& assetType, bool sign);
+                              int& nChangePosInOut, std::string& strFailReason, const CCoinControl& coin_control, bool fNewAsset,
+                              const CNewAsset& asset, const CTxDestination destination, bool fTransferAsset, bool fReissueAsset,
+                              const CReissueAsset& reissueAsset, const AssetType& assetType, bool sign = true, const std::vector<CTxIn>* preAssetInputs = nullptr);
+
+    bool CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey,
+                              CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason,
+                              const CCoinControl& coin_control, bool fNewAsset,
+                              const std::vector<CNewAsset> assets, const CTxDestination destination,
+                              bool fTransferAsset, bool fReissueAsset, const CReissueAsset& reissueAsset,
+                              const AssetType& assetType, bool sign, const std::vector<CTxIn>* preAssetInputs = nullptr);
 
     bool CreateNewChangeAddress(CReserveKey& reservekey, CKeyID& keyID, std::string& strFailReason);
 
@@ -1029,7 +1038,7 @@ public:
     bool AddAccountingEntry(const CAccountingEntry&);
     bool AddAccountingEntry(const CAccountingEntry&, CWalletDB *pwalletdb);
     template <typename ContainerType>
-    bool DummySignTx(CMutableTransaction &txNew, const ContainerType &coins) const;
+    bool DummySignTx(CMutableTransaction &txNew, const ContainerType &coins, const std::vector<CTxIn>* preAssetInputs = nullptr) const;
 
     static CFeeRate minTxFee;
     static CFeeRate fallbackFee;
@@ -1254,10 +1263,14 @@ public:
 // ContainerType is meant to hold pair<CWalletTx *, int>, and be iterable
 // so that each entry corresponds to each vIn, in order.
 template <typename ContainerType>
-bool CWallet::DummySignTx(CMutableTransaction &txNew, const ContainerType &coins) const
+bool CWallet::DummySignTx(CMutableTransaction &txNew, const ContainerType &coins, const std::vector<CTxIn>* preAssetInputs) const
 {
+    const std::string zeros = "000000000000000000000000000000000000000000000000000000000000000000000000";
+    const unsigned char* cstrZeros = (unsigned char*)zeros.c_str();
+
     // Fill in dummy signatures for fee calculation.
     int nIn = 0;
+
     for (const auto& coin : coins)
     {
         const CScript& scriptPubKey = coin.txout.scriptPubKey;
@@ -1273,6 +1286,28 @@ bool CWallet::DummySignTx(CMutableTransaction &txNew, const ContainerType &coins
 
         nIn++;
     }
+
+    if (preAssetInputs) {
+        for (const auto& preAssetInput : *preAssetInputs) {
+            SignatureData sigdata;
+            CScript sigscript = preAssetInput.scriptSig;
+            LogPrintf("DummySignTx(): *preAssetInputs* sigscript=%s\n", HexStr(std::string(sigscript.begin(), sigscript.end())));
+            if (!ProduceSignature(DummySignatureCreator(this), sigscript, sigdata))
+            {
+                LogPrintf("DummySignTx(): *preAssetInput* ProduceSignature() failed -- using dummy sigdata\n");
+                // just add dummy 72 bytes as sigdata if this fails (can't necessarily sign for all inputs)
+                CScript dummyScript = CScript(cstrZeros, cstrZeros + 72);
+                SignatureData dummyData = SignatureData(dummyScript);
+                UpdateTransaction(txNew, nIn, dummyData);
+            } else {
+                UpdateTransaction(txNew, nIn, sigdata);
+            }
+
+            nIn++;
+
+        }
+    }
+
     return true;
 }
 
