@@ -24,6 +24,8 @@ void RegisterRawTransactionRPCCommands(CRPCTable &tableRPC);
 void RegisterAssetRPCCommands(CRPCTable &tableRPC);
 /** Register message RPC commands */
 void RegisterMessageRPCCommands(CRPCTable &tableRPC);
+/** Register dividends RPC commands */
+void RegisterDividendsRPCCommands(CRPCTable &tableRPC);
 
 static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
 {
@@ -34,6 +36,7 @@ static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
     RegisterRawTransactionRPCCommands(t);
     RegisterAssetRPCCommands(t);
     RegisterMessageRPCCommands(t);
+    RegisterDividendsRPCCommands(t);
 }
 
 #endif
