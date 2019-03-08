@@ -47,6 +47,7 @@
 #include "validationinterface.h"
 #include "assets/assets.h"
 #include "assets/assetdb.h"
+#include "assets/dividendsdb.h"
 #ifdef ENABLE_WALLET
 #include "wallet/init.h"
 #endif
@@ -267,6 +268,9 @@ void Shutdown()
         pmessagedb = nullptr;
         delete pmessagechanneldb;
         pmessagechanneldb = nullptr;
+
+        delete pdividenddb;
+        pdividenddb = nullptr;
     }
 #ifdef ENABLE_WALLET
     StopWallets();
@@ -1462,6 +1466,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 delete passetsCache;
                 delete pmessagedb;
                 delete pmessagechanneldb;
+                delete pdividenddb;
                 passetsdb = new CAssetsDB(nBlockTreeDBCache, false, fReset);
                 passets = new CAssetsCache();
                 passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
@@ -1470,7 +1475,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 pMessagesSeenAddressCache = new CLRUCache<std::string, int>(1000);
                 pmessagedb = new CMessageDB(nBlockTreeDBCache, false, false);
                 pmessagechanneldb = new CMessageChannelDB(nBlockTreeDBCache, false, false);
-
+                pdividenddb = new CDividendsDB(nBlockTreeDBCache, false, false);
 
                 // Read for fAssetIndex to make sure that we only load asset address balances if it if true
                 pblocktree->ReadFlag("assetindex", fAssetIndex);

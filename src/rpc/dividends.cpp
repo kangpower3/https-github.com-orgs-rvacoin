@@ -32,6 +32,7 @@
 #include "wallet/feebumper.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
+#include "assets/dividendsdb.h"
 
 UniValue createdividendsdatabase(const JSONRPCRequest& request) {
     if (request.fHelp || request.params.size() != 2)
@@ -49,7 +50,6 @@ UniValue createdividendsdatabase(const JSONRPCRequest& request) {
                 + HelpExampleCli("createdividendsdatabase", "\"ASSETNAME\" 400000")
                 + HelpExampleRpc("createdividendsdatabase", "\"ASSETNAME\" 400000")
         );
-
 
     if (!fAssetIndex) {
         UniValue ret(UniValue::VSTR);
@@ -74,9 +74,56 @@ UniValue createdividendsdatabase(const JSONRPCRequest& request) {
     if (block_height <= chainActive.Height())
         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid block_height: Block heights must be greater than the current height of: ") + std::to_string(chainActive.Height()));
 
-    // TODO add a database entry with the asset_name and block_height
+    if (!pdividenddb)
+        throw JSONRPCError(RPC_DATABASE_ERROR, std::string("Dividend database is not setup. Please restart wallet to try again"));
 
-    return NullUniValue;
+    if (pdividenddb->WriteSnapshotCheck(asset_name, block_height))
+        return "Dividend Snapshot Check was successfully added to the database";
+
+    throw JSONRPCError(RPC_DATABASE_ERROR, std::string("Failed to add Snapshot Check to database"));
+}
+
+UniValue getdividenddatabase(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getdividenddatabase \n"
+                "\nGet all database snapshot checks for a certain block height\n"
+
+                "\nArguments:\n"
+                "block_height: (number required) The block height at which to take the snapshot of the asset database for the given asset_name\n"
+
+                "\nResult:\n"
+                "[\n"
+                   "asset_name,   (string)\n"
+                "]\n"
+
+                "\nExamples:\n"
+                + HelpExampleCli("getdividenddatabase", "400000")
+                + HelpExampleRpc("getdividenddatabase", "400000")
+        );
+
+    if (!fAssetIndex) {
+        UniValue ret(UniValue::VSTR);
+        ret.push_back("Asset Index is required to make a dividend call. To enable assetindex, run the wallet with -assetindex or add assetindex from your raven.conf and perform a -reindex");
+        return ret;
+    }
+
+    int64_t block_height = request.params[0].get_int64();
+
+    if (block_height < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid block_height: Block heights must be a positive number"));
+
+    if (!pdividenddb)
+        throw JSONRPCError(RPC_DATABASE_ERROR, std::string("Dividend database is not setup. Please restart wallet to try again"));
+
+    std::set<std::string> setAssetNames;
+    pdividenddb->ReadSnapshotCheck(block_height, setAssetNames);
+
+    UniValue ret(UniValue::VARR);
+    for (auto str: setAssetNames)
+        ret.push_back(str);
+
+    return ret;
 }
 
 
@@ -84,6 +131,7 @@ static const CRPCCommand commands[] =
     {           //  category    name                          actor (function)             argNames
                 //  ----------- ------------------------      -----------------------      ----------
             { "dividends",      "createdividendsdatabase",    &createdividendsdatabase,    {"asset_name", "block_height"}},
+            { "dividends",      "getdividenddatabase",        &getdividenddatabase,        {"block_height"}},
     };
 
 void RegisterDividendsRPCCommands(CRPCTable &t)

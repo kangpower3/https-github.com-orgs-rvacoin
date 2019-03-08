@@ -185,6 +185,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listassetbalancesbyaddress", 3, "start"},
     { "sendmessage", 2, "expire_time"},
     { "createdividendsdatabase", 1, "block_height"},
+    { "getdividenddatabase", 0, "block_height"},
 
 };
 

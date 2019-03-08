@@ -53,6 +53,7 @@ struct ChainTxData;
 
 class CAssetsDB;
 class CAssets;
+class CDividendsDB;
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -511,6 +512,8 @@ extern CLRUCache<std::string, int> *pMessageSubscribedChannelsCache;
 extern CLRUCache<std::string, int> *pMessagesSeenAddressCache;
 extern CMessageDB *pmessagedb;
 extern CMessageChannelDB *pmessagechanneldb;
+
+extern CDividendsDB *pdividenddb;
 /** RVN END */
 
 /**

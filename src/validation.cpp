@@ -56,6 +56,8 @@
 #include "assets/assets.h"
 #include "assets/assetdb.h"
 
+#include "assets/dividendsdb.h"
+
 #if defined(NDEBUG)
 # error "Raven cannot be compiled without assertions."
 #endif
@@ -208,6 +210,8 @@ CLRUCache<std::string, int> *pMessageSubscribedChannelsCache = nullptr;
 CLRUCache<std::string, int> *pMessagesSeenAddressCache = nullptr;
 CMessageDB *pmessagedb = nullptr;
 CMessageChannelDB *pmessagechanneldb = nullptr;
+
+CDividendsDB *pdividenddb = nullptr;
 
 enum FlushStateMode {
     FLUSH_STATE_NONE,
