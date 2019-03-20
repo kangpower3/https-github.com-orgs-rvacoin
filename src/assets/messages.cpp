@@ -188,7 +188,7 @@ void OrphanMessage(const CMessage& message)
 
 bool ScanForMessageChannels(std::string& strError)
 {
-    LOCK2(cs_messaging, cs_main);
+    LOCK(cs_messaging);
 
     LogPrintf("%s : Start Scanning For Message Channels\n", __func__);
 
@@ -201,9 +201,12 @@ bool ScanForMessageChannels(std::string& strError)
 
     while (blockIndex) {
         CBlock block;
-        if (!ReadBlockFromDisk(block, blockIndex, Params().GetConsensus())) {
-            strError = "Block not found on disk";
-            return false;
+        {
+            LOCK(cs_main);
+            if (!ReadBlockFromDisk(block, blockIndex, Params().GetConsensus())) {
+                strError = "Block not found on disk";
+                return false;
+            }
         }
 
         for (const auto& tx : block.vtx) {
