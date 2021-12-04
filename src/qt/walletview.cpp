@@ -396,14 +396,9 @@ void WalletView::requestedSyncWarningInfo()
     Q_EMIT outOfSyncWarningClicked();
 }
 
-bool fFirstVisit = true;
 /** RVN START */
 void WalletView::gotoAssetsPage()
 {
-    if (fFirstVisit){
-        fFirstVisit = false;
-        assetsPage->handleFirstSelection();
-    }
     setCurrentWidget(assetsPage);
     assetsPage->focusAssetListBox();
 }

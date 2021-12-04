@@ -287,9 +287,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, CAssetsCa
                 if (!ReissueAssetFromTransaction(tx, reissue, strAddress))
                     return state.DoS(100, false, REJECT_INVALID, "bad-txns-reissue-asset");
 
-                if (!reissue.IsValid(strError, *assetCache, false)) {
+                if (!reissue.IsValid(strError, *assetCache))
                     return state.DoS(100, false, REJECT_INVALID, "bad-txns-reissue-" + strError);
-                }
 
             } else if (tx.IsNewUniqueAsset()) {
 
@@ -428,7 +427,6 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
             else
                 totalOutputs.insert(make_pair(transfer.strName, transfer.nAmount));
 
-            auto currentActiveAssetCache = GetCurrentAssetCache();
             if (!fRunningUnitTests) {
                 if (IsAssetNameAnOwner(transfer.strName)) {
                     if (transfer.nAmount != OWNER_ASSET_AMOUNT)
@@ -436,7 +434,7 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
                 } else {
                     // For all other types of assets, make sure they are sending the right type of units
                     CNewAsset asset;
-                    if (!currentActiveAssetCache->GetAssetMetaDataIfExists(transfer.strName, asset))
+                    if (!passets->GetAssetMetaDataIfExists(transfer.strName, asset))
                         return state.DoS(100, false, REJECT_INVALID, "bad-txns-transfer-asset-not-exist");
 
                     if (asset.strName != transfer.strName)
@@ -453,9 +451,8 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
                 return state.DoS(100, false, REJECT_INVALID, "bad-tx-asset-reissue-bad-deserialize");
 
             if (!fRunningUnitTests) {
-                auto currentActiveAssetCache = GetCurrentAssetCache();
                 std::string strError;
-                if (!reissue.IsValid(strError, *currentActiveAssetCache)) {
+                if (!reissue.IsValid(strError, *passets)) {
                     return state.DoS(100, false, REJECT_INVALID,
                                      "bad-txns" + strError);
                 }

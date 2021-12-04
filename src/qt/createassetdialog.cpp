@@ -535,10 +535,9 @@ void CreateAssetDialog::checkAvailabilityClicked()
     QString name = GetAssetName();
 
     LOCK(cs_main);
-    auto currentActiveAssetCache = GetCurrentAssetCache();
-    if (currentActiveAssetCache) {
+    if (passets) {
         CNewAsset asset;
-        if (currentActiveAssetCache->GetAssetMetaDataIfExists(name.toStdString(), asset)) {
+        if (passets->GetAssetMetaDataIfExists(name.toStdString(), asset)) {
             ui->nameText->setStyleSheet(STYLE_INVALID);
             showMessage(tr("Invalid: Asset name already in use"));
             disableCreateButton();

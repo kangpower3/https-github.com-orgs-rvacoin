@@ -42,7 +42,6 @@ const char *GETBLOCKTXN="getblocktxn";
 const char *BLOCKTXN="blocktxn";
 const char *GETASSETDATA="getassetdata";
 const char *ASSETDATA="assetdata";
-const char *ASSETNOTFOUND ="asstnotfound";
 } // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of
@@ -76,8 +75,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::GETBLOCKTXN,
     NetMsgType::BLOCKTXN,
     NetMsgType::GETASSETDATA,
-    NetMsgType::ASSETDATA,
-    NetMsgType::ASSETNOTFOUND
+    NetMsgType::ASSETDATA
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
 

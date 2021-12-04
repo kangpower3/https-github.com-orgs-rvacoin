@@ -255,13 +255,6 @@ extern const char *GETASSETDATA;
  * @since protocol version 70017
  */
 extern const char *ASSETDATA;
-
-/**
- * The asstnotfound message is a reply to a getassetdata message which requested an
- * object the receiving node does not have available for relay.
- * @since protocol version 70018.
- */
-    extern const char *ASSETNOTFOUND;
 };
 
 /* Get a vector of all valid message types (see above) */
